@@ -1,0 +1,19 @@
+{
+  "name": "social-sphere",
+  "version": "1.0.0",
+  "description": "A full-stack social media web app inspired by Facebook, Instagram, WhatsApp, Twitter/X, and Telegram.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "social-media",
+    "chat",
+    "feed",
+    "stories",
+    "node"
+  ],
+  "author": "",
+  "license": "MIT"
+}
