@@ -1,19 +1,21 @@
 {
-  "name": "social-sphere",
+  "name": "backend",
   "version": "1.0.0",
-  "description": "A full-stack social media web app inspired by Facebook, Instagram, WhatsApp, Twitter/X, and Telegram.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "nodemon server.js"
   },
-  "keywords": [
-    "social-media",
-    "chat",
-    "feed",
-    "stories",
-    "node"
-  ],
-  "author": "",
-  "license": "MIT"
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.24.0",
+    "multer": "^2.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
 }
