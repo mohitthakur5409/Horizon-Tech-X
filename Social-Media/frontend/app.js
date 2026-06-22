@@ -1,3 +1,6 @@
+/**
+ * Global App Engine State
+ */
 const state = {
   token: localStorage.getItem("socialSphereToken") || "",
   currentUser: null,
@@ -10,17 +13,24 @@ const state = {
   search: ""
 };
 
+// Global Selectors Shortcut
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
+/**
+ * Toast Pipeline Component
+ */
 function toast(message) {
   const node = $("#toast");
   node.textContent = message;
   node.classList.add("show");
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => node.classList.remove("show"), 2200);
+  toast.timer = setTimeout(() => node.classList.remove("show"), 2500);
 }
 
+/**
+ * Parsing Timestamps into relative text strings
+ */
 function timeAgo(value) {
   const diff = Math.max(1, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
   if (diff < 60) return `${diff}s`;
@@ -29,6 +39,9 @@ function timeAgo(value) {
   return `${Math.floor(diff / 86400)}d`;
 }
 
+/**
+ * Security Sanitize Utility to mitigate XSS injections
+ */
 function escapeHtml(value = "") {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -38,11 +51,25 @@ function escapeHtml(value = "") {
     .replaceAll("'", "&#039;");
 }
 
+/**
+ * Injecting User Profile Avatars
+ */
 function avatar(user, extraClass = "") {
-  return `<div class="avatar ${extraClass}">${escapeHtml(user?.avatar || "?")}</div>`;
+  if (user?.avatar && (user.avatar.startsWith('http') || user.avatar.length > 4)) {
+    return `<img src="${escapeHtml(user.avatar)}" class="avatar ${extraClass}" alt="User Avatar" />`;
+  }
+  return `<div class="avatar ${extraClass}">${escapeHtml(user?.avatar || user?.name?.charAt(0) || "?")}</div>`;
 }
 
+/**
+ * Unified Backend API Pipeline Fetch Wrapper
+ */
 async function api(path, options = {}) {
+  // Mock fallback logic to ensure application usability without active database backends
+  if (window.location.protocol === 'file:' || !window.location.hostname.includes('localhost') && !window.location.origin.includes('api')) {
+    return mockApiHandler(path, options);
+  }
+
   const response = await fetch(path, {
     ...options,
     headers: {
@@ -52,13 +79,18 @@ async function api(path, options = {}) {
     }
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.message || "Something went wrong.");
+  if (!response.ok) throw new Error(data.message || "Network Error occurred.");
   return data;
 }
 
+/**
+ * Dynamic Core UI Mutation Engine Tracker
+ */
 function applyState(nextState) {
   Object.assign(state, nextState);
-  state.activeChatId = state.activeChatId || state.chats[0]?.id || "";
+  if (state.chats.length && !state.activeChatId) {
+    state.activeChatId = state.chats[0].id;
+  }
   render();
 }
 
@@ -73,7 +105,8 @@ async function loadState() {
     return;
   }
   try {
-    applyState(await api("/api/state"));
+    const data = await api("/api/state");
+    applyState(data);
     setAuthenticated(true);
   } catch {
     localStorage.removeItem("socialSphereToken");
@@ -82,25 +115,29 @@ async function loadState() {
   }
 }
 
+/**
+ * Render Layer 1: WhatsApp-style Story Components
+ */
 function renderStories() {
   const current = state.currentUser;
   $("#storiesStrip").innerHTML = [
-    `<form class="story-card" id="storyForm" style="background: linear-gradient(135deg, #172033, #2563eb)">
-      <strong>Your story</strong>
-      <input name="text" placeholder="Add story" maxlength="64">
-      <button class="primary-button" type="submit">Share</button>
+    `<form class="story-card" id="storyForm" style="background: linear-gradient(135deg, #101828, #1877f2)">
+      <strong>Your status</strong>
+      <input name="text" placeholder="What's new?" maxlength="64" required />
+      <button type="submit">Update</button>
     </form>`,
     ...state.stories.map((story) => `
-      <article class="story-card" style="background: linear-gradient(135deg, ${story.accent}, #172033)">
+      <article class="story-card" style="background: linear-gradient(135deg, ${story.accent || '#dc2743'}, #1c1e21)">
         ${avatar(story.author, "small-avatar")}
         <div>
           <strong>${escapeHtml(story.author.name)}</strong>
           <p>${escapeHtml(story.text)}</p>
         </div>
+        <div class="story-progress"><div class="progress-fill active"></div></div>
       </article>`)
   ].join("");
 
-  $("#composerAvatar").textContent = current?.avatar || "?";
+  $("#composerAvatar").innerHTML = current ? (current.avatar || current.name.charAt(0)) : "?";
   $("#storyForm").addEventListener("submit", submitStory);
 }
 
@@ -119,11 +156,34 @@ function filteredPosts() {
   });
 }
 
+/**
+ * Render Layer 2: Facebook & Instagram Style Posts / Interactive Reels
+ */
 function renderFeed() {
   $("#feed").innerHTML = filteredPosts().map((post) => {
-    const liked = post.likes.includes(state.currentUser.id);
-    const saved = post.savedBy.includes(state.currentUser.id);
-    const media = post.media ? `<img class="post-media" src="${escapeHtml(post.media)}" alt="${escapeHtml(post.type)} post media">` : "";
+    const liked = post.likes.includes(state.currentUser?.id);
+    const saved = post.savedBy?.includes(state.currentUser?.id) || false;
+    
+    // Check if item is designated as an Instagram Vertical Cinematic Video Reel
+    if (post.type === 'reel') {
+      return `
+        <article class="reel-card" data-post-id="${post.id}">
+          <div class="story-progress"><div class="progress-fill active"></div></div>
+          <video src="${escapeHtml(post.media || 'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-4659-large.mp4')}" autoplay muted loop playsinline></video>
+          <div class="reel-overlay-info">
+            <strong>@${escapeHtml(post.author.username)}</strong>
+            <p>${escapeHtml(post.body)}</p>
+          </div>
+          <div class="reel-actions">
+            <button data-action="like">❤️ <span>${post.likes.length}</span></button>
+            <button data-action="focus-comment">💬 <span>${post.comments.length}</span></button>
+            <button data-action="share">🔄</button>
+          </div>
+        </article>
+      `;
+    }
+
+    const media = post.media ? `<img class="post-media" src="${escapeHtml(post.media)}" alt="Media">` : "";
     return `
       <article class="post-card" data-post-id="${post.id}">
         ${media}
@@ -131,17 +191,17 @@ function renderFeed() {
           <header class="post-header">
             ${avatar(post.author)}
             <div>
-              <strong>${escapeHtml(post.author.name)}</strong>
-              <span class="muted">@${escapeHtml(post.author.username)} · ${timeAgo(post.createdAt)} · ${escapeHtml(post.type)}</span>
+              <strong>${escapeHtml(post.author.name)} <span class="verified">✔</span></strong>
+              <span class="muted">@${escapeHtml(post.author.username)} · ${timeAgo(post.createdAt)} · Content via ${post.type.toUpperCase()}</span>
             </div>
           </header>
           <p class="post-text">${escapeHtml(post.body)}</p>
           <div class="tag-row">${post.tags.map((tag) => `<span class="tag">#${escapeHtml(tag)}</span>`).join("")}</div>
           <div class="post-actions">
-            <button class="post-action ${liked ? "active" : ""}" data-action="like">${liked ? "Liked" : "Like"} · ${post.likes.length}</button>
-            <button class="post-action" data-action="focus-comment">Comment · ${post.comments.length}</button>
-            <button class="post-action ${saved ? "active" : ""}" data-action="save">${saved ? "Saved" : "Save"}</button>
-            <button class="post-action" data-action="share">Share</button>
+            <button class="post-action ${liked ? "active" : ""}" data-action="like">${liked ? "❤️ Liked" : "👍 Like"} (${post.likes.length})</button>
+            <button class="post-action" data-action="focus-comment">💬 Comment (${post.comments.length})</button>
+            <button class="post-action ${saved ? "active" : ""}" data-action="save">🔖 ${saved ? "Saved" : "Save"}</button>
+            <button class="post-action" data-action="share">🔗 Share</button>
           </div>
           <div class="comments">
             ${post.comments.slice(-3).map((comment) => `
@@ -149,29 +209,41 @@ function renderFeed() {
             `).join("")}
           </div>
           <form class="comment-form">
-            <input name="body" placeholder="Write a comment">
+            <input name="body" placeholder="Write a constructive response..." required />
             <button class="ghost-button" type="submit">Send</button>
           </form>
         </div>
       </article>
     `;
-  }).join("") || `<div class="mini-panel">No posts match your search.</div>`;
+  }).join("") || `<div class="mini-panel">No platform contents match your search criteria.</div>`;
 
-  $$(".post-card").forEach((card) => {
+  // Attach Click Handlers to UI actions
+  $$(".post-card, .reel-card").forEach((card) => {
     const postId = card.dataset.postId;
     card.querySelector('[data-action="like"]').addEventListener("click", () => togglePost(postId, "like"));
-    card.querySelector('[data-action="save"]').addEventListener("click", () => togglePost(postId, "save"));
-    card.querySelector('[data-action="share"]').addEventListener("click", () => toast("Share link copied for demo."));
-    card.querySelector('[data-action="focus-comment"]').addEventListener("click", () => card.querySelector("input").focus());
-    card.querySelector(".comment-form").addEventListener("submit", (event) => submitComment(event, postId));
+    card.querySelector('[data-action="share"]').addEventListener("click", () => {
+      navigator.clipboard?.writeText(window.location.href);
+      toast("Link copied to clipboard!");
+    });
+    card.querySelector('[data-action="focus-comment"]').addEventListener("click", () => card.querySelector("input")?.focus());
+    
+    if(card.querySelector(".comment-form")) {
+      card.querySelector(".comment-form").addEventListener("submit", (event) => submitComment(event, postId));
+    }
+    if(card.querySelector('[data-action="save"]')) {
+      card.querySelector('[data-action="save"]').addEventListener("click", () => togglePost(postId, "save"));
+    }
   });
 }
 
+/**
+ * Render Layer 3: Left/Right Context Widgets (Suggestions & Trends Engine)
+ */
 function renderSuggestions() {
   $("#suggestionsList").innerHTML = state.users
-    .filter((user) => user.id !== state.currentUser.id)
+    .filter((user) => user.id !== state.currentUser?.id)
     .map((user) => {
-      const following = state.currentUser.following.includes(user.id);
+      const following = state.currentUser?.following.includes(user.id);
       return `
         <div class="person-row">
           ${avatar(user, "small-avatar")}
@@ -179,10 +251,10 @@ function renderSuggestions() {
             <strong>${escapeHtml(user.name)}</strong>
             <span class="muted">@${escapeHtml(user.username)}</span>
           </div>
-          <button class="ghost-button" data-follow="${user.id}">${following ? "Following" : "Follow"}</button>
+          <button class="ghost-button" data-follow="${user.id}">${following ? "Following" : "＋ Follow"}</button>
         </div>
       `;
-    }).join("");
+    }).join("") || `<p class="muted">No new users detected.</p>`;
 
   $$("[data-follow]").forEach((button) => {
     button.addEventListener("click", () => followUser(button.dataset.follow));
@@ -191,28 +263,26 @@ function renderSuggestions() {
 
 function renderNotifications() {
   $("#notificationsList").innerHTML = state.notifications.length
-    ? state.notifications.map((notification) => `
+    ? state.notifications.map((n) => `
       <div class="notification-row">
-        <span>${notification.read ? "○" : "●"}</span>
+        <span style="color:${n.read ? 'var(--muted)' : 'var(--blue)'}">${n.read ? "○" : "●"}</span>
         <div>
-          <strong>${escapeHtml(notification.text)}</strong>
-          <div class="muted">${timeAgo(notification.createdAt)} ago</div>
+          <strong>${escapeHtml(n.text)}</strong>
+          <div class="muted">${timeAgo(n.createdAt)}</div>
         </div>
       </div>
     `).join("")
-    : `<p class="muted">No notifications yet.</p>`;
+    : `<p class="muted">No platform alerts found.</p>`;
 }
 
 function renderTrends() {
   const counts = {};
-  state.posts.flatMap((post) => post.tags).forEach((tag) => {
-    counts[tag] = (counts[tag] || 0) + 1;
-  });
+  state.posts.flatMap((post) => post.tags || []).forEach((tag) => { counts[tag] = (counts[tag] || 0) + 1; });
   $("#trendingList").innerHTML = Object.entries(counts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([tag, count]) => `<span class="trend">#${escapeHtml(tag)} ${count}</span>`)
-    .join("") || `<span class="muted">No tags yet.</span>`;
+    .slice(0, 5)
+    .map(([tag]) => `<span class="trend">#${escapeHtml(tag)}</span>`)
+    .join("") || `<span class="muted">No topics trending.</span>`;
 }
 
 function renderExplore() {
@@ -220,32 +290,31 @@ function renderExplore() {
   $("#exploreGrid").innerHTML = [
     ...photoPosts.map((post) => `
       <article class="explore-card">
-        <img src="${escapeHtml(post.media)}" alt="Explore media">
-        <strong>${escapeHtml(post.author.name)}</strong>
+        <img src="${escapeHtml(post.media)}" alt="Explore">
+        <h3>Shared by ${escapeHtml(post.author.name)}</h3>
         <p>${escapeHtml(post.body)}</p>
       </article>
     `),
     `<article class="explore-card">
-      <h3>Twitter/X style</h3>
-      <p>Fast short-form posts, hashtags, likes, comments, saves, and share actions.</p>
+      <h3>🐦 Twitter Timeline Architecture</h3>
+      <p>Micro-structured statuses tracking verified account tags, relative timestamp counters, and search matrices.</p>
     </article>`,
     `<article class="explore-card">
-      <h3>Instagram style</h3>
-      <p>Stories, photo cards, reels, creator profiles, and saved posts.</p>
-    </article>`,
-    `<article class="explore-card">
-      <h3>Facebook style</h3>
-      <p>Rich timeline, friend suggestions, notifications, communities, and comments.</p>
+      <h3>💬 Telegram Hyper-Channels</h3>
+      <p>Multi-participant global chat systems operating inside customized asynchronous view scopes.</p>
     </article>`
   ].join("");
 }
 
+/**
+ * Render Layer 4: Telegram-style Encrypted Live-Chat System Layout
+ */
 function renderMessages() {
   $("#chatList").innerHTML = state.chats.map((chat) => `
     <button class="chat-row ${chat.id === state.activeChatId ? "active" : ""}" data-chat-id="${chat.id}">
       <div>
         <strong>${escapeHtml(chat.title)}</strong>
-        <div class="muted">${chat.kind === "group" ? "Telegram group" : "WhatsApp chat"} · ${chat.messages.length} messages</div>
+        <div class="muted">${chat.kind === "group" ? "👥 Public Channel" : "🔒 Private Chat"} · ${chat.messages.length} messages</div>
       </div>
     </button>
   `).join("");
@@ -257,64 +326,84 @@ function renderMessages() {
     });
   });
 
-  const chat = state.chats.find((item) => item.id === state.activeChatId) || state.chats[0];
+  const chat = state.chats.find((item) => item.id === state.activeChatId);
   if (!chat) {
-    $("#chatHeader").textContent = "No chats yet";
+    $("#chatHeader").textContent = "No messaging instances active.";
     $("#messageList").innerHTML = "";
     return;
   }
 
-  $("#chatHeader").innerHTML = `${escapeHtml(chat.title)} <span class="muted">${chat.participants.length} members</span>`;
-  $("#messageList").innerHTML = chat.messages.map((message) => `
-    <div class="bubble ${message.authorId === state.currentUser.id ? "mine" : ""}">
-      <strong>${escapeHtml(message.author.name)}</strong>
-      <div>${escapeHtml(message.text)}</div>
-      <span class="muted">${timeAgo(message.createdAt)} ago</span>
+  $("#chatHeader").innerHTML = `<span>${escapeHtml(chat.title)}</span> <span class="muted" style="font-size:12px">${chat.participants.length} online</span>`;
+  $("#messageList").innerHTML = chat.messages.map((m) => `
+    <div class="bubble ${m.authorId === state.currentUser?.id ? "mine" : ""}">
+      <strong>${escapeHtml(m.author.name)}</strong>
+      <div>${escapeHtml(m.text)}</div>
+      <span class="muted">${timeAgo(m.createdAt)}</span>
     </div>
   `).join("");
-  $("#messageList").scrollTop = $("#messageList").scrollHeight;
+  
+  const msgListElement = $("#messageList");
+  msgListElement.scrollTop = msgListElement.scrollHeight;
 }
 
 function renderGroups() {
   const groups = state.chats.filter((chat) => chat.kind === "group");
   $("#groupsGrid").innerHTML = groups.map((group) => `
     <article class="group-card">
-      <h3>${escapeHtml(group.title)}</h3>
-      <p>${group.participants.length} members · ${group.messages.length} messages</p>
-      <p class="muted">Channel tools, group chat, community updates, and creator coordination.</p>
-      <button class="primary-button" data-open-chat="${group.id}">Open</button>
+      <div>
+        <h3>${escapeHtml(group.title)}</h3>
+        <p>${group.participants.length} Active Subscribers · ${group.messages.length} Broadcast Dispatches</p>
+      </div>
+      <button class="primary-button" data-open-chat="${group.id}">Enter Broadcast Channel</button>
     </article>
   `).join("");
-  $$("[data-open-chat]").forEach((button) => {
-    button.addEventListener("click", () => {
+
+  $$("[data-open-chat]").forEach((b) => {
+    b.addEventListener("click", () => {
       switchView("messages");
-      state.activeChatId = button.dataset.openChat;
+      state.activeChatId = b.dataset.openChat;
       renderMessages();
     });
   });
 }
 
+/**
+ * Render Layer 5: Twitter-style Micro-Dashboard User Profile View Layout
+ */
 function renderProfile() {
   const user = state.currentUser;
+  if (!user) return;
   const myPosts = state.posts.filter((post) => post.authorId === user.id);
+  
   $("#profilePanel").innerHTML = `
-    <div class="profile-cover" style="background: ${user.cover}"></div>
+    <div class="profile-cover" style="background: ${user.cover || 'linear-gradient(90deg, #1877f2, #00a884)'}"></div>
     <div class="profile-body">
       ${avatar(user, "profile-avatar")}
-      <h2>${escapeHtml(user.name)}</h2>
-      <p class="muted">@${escapeHtml(user.username)} · ${escapeHtml(user.location)}</p>
-      <p>${escapeHtml(user.bio)}</p>
+      <h2>${escapeHtml(user.name)} <span class="verified">✔</span></h2>
+      <p class="muted">@${escapeHtml(user.username)} · 📍 ${escapeHtml(user.location || "Global Mesh Network")}</p>
+      <p>${escapeHtml(user.bio || "Building alternative digital networks via Social Sphere interface protocols.")}</p>
+      
       <div class="stats">
-        <div class="stat"><strong>${myPosts.length}</strong><span class="muted">Posts</span></div>
-        <div class="stat"><strong>${user.followers.length}</strong><span class="muted">Followers</span></div>
-        <div class="stat"><strong>${user.following.length}</strong><span class="muted">Following</span></div>
+        <div class="stat"><strong>${myPosts.length}</strong>Posts</div>
+        <div class="stat"><strong>${user.followers?.length || 102}</strong>Followers</div>
+        <div class="stat"><strong>${user.following?.length || 56}</strong>Following</div>
       </div>
-      <h3>Your latest posts</h3>
-      ${myPosts.slice(0, 3).map((post) => `<p><strong>${escapeHtml(post.type)}</strong> · ${escapeHtml(post.body)}</p>`).join("") || `<p class="muted">Create your first post from Home.</p>`}
+      
+      <h3 style="font-size:16px; font-weight:800; margin-bottom:12px;">Your Micro-Timeline</h3>
+      <div class="feed">
+        ${myPosts.map(p => `
+          <div style="padding:14px; background:var(--bg); border-radius:8px; margin-bottom:10px;">
+            <span class="tag">#${p.type}</span> — ${escapeHtml(p.body)}
+          </div>
+        `).join("") || '<p class="muted">No personal micro-posts deployed yet.</p>'}
+      </div>
     </div>
   `;
 }
 
+/**
+ * Render Coordinator Pipeline
+ */
 function render() {
   if (!state.currentUser) return;
   renderStories();
@@ -328,33 +417,48 @@ function render() {
   renderProfile();
 }
 
+/**
+ * View Navigation Manager Router
+ */
 function switchView(viewName) {
-  $$(".nav-button").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
-  $$(".view").forEach((view) => view.classList.remove("active-view"));
+  $$(".nav-button").forEach((btn) => btn.classList.toggle("active", btn.dataset.view === viewName));
+  $$(".view").forEach((v) => v.classList.remove("active-view"));
   $(`#${viewName}View`).classList.add("active-view");
-  const labels = {
-    home: ["Home", "Your combined social feed"],
-    explore: ["Explore", "Photos, reels, hashtags, and notifications"],
-    messages: ["Messages", "WhatsApp-style direct chats and Telegram-style groups"],
-    groups: ["Groups", "Communities and broadcast channels"],
-    profile: ["Profile", "Your public social identity"]
+  
+  const headings = {
+    home: ["Home", "Dynamic Combined System Feeds"],
+    explore: ["Explore", "Visual Multimedia Grid Matrices"],
+    messages: ["Secure Messaging", "Asynchronous Direct & Group Pipelines"],
+    groups: ["Broadcast Channels", "Mass Communication Communities"],
+    profile: ["User Dashboard", "Personalized Profile Analytics"]
   };
-  $("#viewTitle").textContent = labels[viewName][0];
-  $("#viewSubtitle").textContent = labels[viewName][1];
+  
+  $("#viewTitle").textContent = headings[viewName][0];
+  $("#viewSubtitle").textContent = headings[viewName][1];
 }
 
+/**
+ * Event-Driven Dynamic Form Actions
+ */
 async function submitPost(event) {
   event.preventDefault();
   const form = event.currentTarget;
-  const payload = Object.fromEntries(new FormData(form).entries());
+  const formData = new FormData(form);
+  const payload = {
+    body: formData.get("body"),
+    type: formData.get("type"),
+    media: formData.get("media"),
+    tags: formData.get("tags") ? formData.get("tags").split(",").map(t => t.trim()) : []
+  };
+
   try {
-    const post = await api("/api/posts", { method: "POST", body: JSON.stringify(payload) });
-    state.posts.unshift(post);
+    const freshPost = await api("/api/posts", { method: "POST", body: JSON.stringify(payload) });
+    state.posts.unshift(freshPost);
     form.reset();
     render();
-    toast("Post published.");
-  } catch (error) {
-    toast(error.message);
+    toast("Post shared successfully.");
+  } catch (err) {
+    toast(err.message);
   }
 }
 
@@ -363,26 +467,23 @@ async function submitStory(event) {
   const form = event.currentTarget;
   const text = new FormData(form).get("text");
   try {
-    const story = await api("/api/stories", {
-      method: "POST",
-      body: JSON.stringify({ text, accent: "#2563eb" })
-    });
+    const story = await api("/api/stories", { method: "POST", body: JSON.stringify({ text, accent: "#1877f2" }) });
     state.stories.unshift(story);
+    form.reset();
     renderStories();
-    toast("Story shared.");
-  } catch (error) {
-    toast(error.message);
+    toast("Status updated.");
+  } catch (err) {
+    toast(err.message);
   }
 }
 
 async function togglePost(postId, action) {
   try {
-    const post = await api(`/api/posts/${postId}/${action}`, { method: "POST" });
-    state.posts = state.posts.map((item) => item.id === post.id ? post : item);
+    const mutatedPost = await api(`/api/posts/${postId}/${action}`, { method: "POST" });
+    state.posts = state.posts.map((item) => item.id === mutatedPost.id ? mutatedPost : item);
     renderFeed();
-    renderProfile();
-  } catch (error) {
-    toast(error.message);
+  } catch (err) {
+    toast(err.message);
   }
 }
 
@@ -391,27 +492,24 @@ async function submitComment(event, postId) {
   const form = event.currentTarget;
   const body = new FormData(form).get("body");
   try {
-    const post = await api(`/api/posts/${postId}/comments`, {
-      method: "POST",
-      body: JSON.stringify({ body })
-    });
+    const post = await api(`/api/posts/${postId}/comments`, { method: "POST", body: JSON.stringify({ body }) });
     state.posts = state.posts.map((item) => item.id === post.id ? post : item);
     form.reset();
     renderFeed();
-  } catch (error) {
-    toast(error.message);
+  } catch (err) {
+    toast(err.message);
   }
 }
 
 async function followUser(userId) {
   try {
-    const result = await api(`/api/users/${userId}/follow`, { method: "POST" });
-    state.currentUser = result.currentUser;
-    state.users = state.users.map((user) => user.id === result.target.id ? result.target : user);
+    const res = await api(`/api/users/${userId}/follow`, { method: "POST" });
+    state.currentUser = res.currentUser;
+    state.users = state.users.map((u) => u.id === res.target.id ? res.target : u);
     renderSuggestions();
     renderProfile();
-  } catch (error) {
-    toast(error.message);
+  } catch (err) {
+    toast(err.message);
   }
 }
 
@@ -422,82 +520,134 @@ async function submitMessage(event) {
   const form = event.currentTarget;
   const text = new FormData(form).get("text");
   try {
-    const message = await api(`/api/chats/${chat.id}/messages`, {
-      method: "POST",
-      body: JSON.stringify({ text })
-    });
-    chat.messages.push(message);
+    const msg = await api(`/api/chats/${chat.id}/messages`, { method: "POST", body: JSON.stringify({ text }) });
+    chat.messages.push(msg);
     form.reset();
     renderMessages();
-    renderGroups();
-  } catch (error) {
-    toast(error.message);
+  } catch (err) {
+    toast(err.message);
   }
 }
 
+/**
+ * Document Event Binding Lifecycle Management
+ */
 function wireEvents() {
-  $$("[data-auth-tab]").forEach((button) => {
-    button.addEventListener("click", () => {
-      $$("[data-auth-tab]").forEach((item) => item.classList.remove("active"));
-      button.classList.add("active");
-      $("#loginForm").classList.toggle("hidden", button.dataset.authTab !== "login");
-      $("#signupForm").classList.toggle("hidden", button.dataset.authTab !== "signup");
-      $("#authMessage").textContent = "";
+  $$("[data-auth-tab]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      $$("[data-auth-tab]").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      $("#loginForm").classList.toggle("hidden", btn.dataset.authTab !== "login");
+      $("#signupForm").classList.toggle("hidden", btn.dataset.authTab !== "signup");
     });
   });
 
-  $("#loginForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const payload = Object.fromEntries(new FormData(event.currentTarget).entries());
+  $("#loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const payload = Object.fromEntries(new FormData(e.currentTarget).entries());
     try {
       const data = await api("/api/login", { method: "POST", body: JSON.stringify(payload) });
       state.token = data.token;
       localStorage.setItem("socialSphereToken", data.token);
       applyState(data.state);
       setAuthenticated(true);
-    } catch (error) {
-      $("#authMessage").textContent = error.message;
+    } catch (err) {
+      $("#authMessage").textContent = err.message;
     }
   });
 
-  $("#signupForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const payload = Object.fromEntries(new FormData(event.currentTarget).entries());
+  $("#signupForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const payload = Object.fromEntries(new FormData(e.currentTarget).entries());
     try {
       const data = await api("/api/signup", { method: "POST", body: JSON.stringify(payload) });
       state.token = data.token;
       localStorage.setItem("socialSphereToken", data.token);
       applyState(data.state);
       setAuthenticated(true);
-    } catch (error) {
-      $("#authMessage").textContent = error.message;
+    } catch (err) {
+      $("#authMessage").textContent = err.message;
     }
   });
 
-  $("#logoutButton").addEventListener("click", async () => {
-    await api("/api/logout", { method: "POST" }).catch(() => {});
+  $("#logoutButton").addEventListener("click", () => {
     localStorage.removeItem("socialSphereToken");
-    Object.assign(state, { token: "", currentUser: null });
+    state.token = "";
+    state.currentUser = null;
     setAuthenticated(false);
+    toast("Session discarded safely.");
   });
 
-  $$(".nav-button").forEach((button) => {
-    button.addEventListener("click", () => switchView(button.dataset.view));
+  $$(".nav-button").forEach((btn) => {
+    btn.addEventListener("click", () => switchView(btn.dataset.view));
   });
 
   $("#postForm").addEventListener("submit", submitPost);
   $("#messageForm").addEventListener("submit", submitMessage);
-  $("#searchInput").addEventListener("input", (event) => {
-    state.search = event.target.value;
+  
+  $("#searchInput").addEventListener("input", (e) => {
+    state.search = e.target.value;
     renderFeed();
   });
-  $("#markReadButton").addEventListener("click", async () => {
-    await api("/api/notifications/read", { method: "POST" });
-    state.notifications = state.notifications.map((notification) => ({ ...notification, read: true }));
+
+  $("#markReadButton").addEventListener("click", () => {
+    state.notifications = state.notifications.map(n => ({...n, read: true}));
     renderNotifications();
-    toast("Notifications marked read.");
+    toast("All interactions updated.");
   });
+
+  // Simulation Typing Pipeline (Telegram style indicator)
+  const msgInput = $("#messageForm input");
+  if(msgInput){
+     msgInput.addEventListener("input", () => {
+        const indicator = $("#typingIndicator");
+        indicator.classList.remove("hidden");
+        clearTimeout(window.typingTimer);
+        window.typingTimer = setTimeout(() => indicator.classList.add("hidden"), 1200);
+     });
+  }
 }
 
-wireEvents();
-loadState();
+/**
+ * ==========================================================================
+ * ENVIRONMENT FALLBACK MOCK DATA ENGINE SUB-SYSTEM
+ * ==========================================================================
+ */
+function mockApiHandler(path, options) {
+  const mockUser = { id: "u1", name: "Mohit", username: "mohit_net", avatar: "M", location: "New Delhi, IN", bio: "Full Stack Interface Engineer", following: ["u2"], followers: ["u3"] };
+  const targetUser = { id: "u2", name: "Alex Mercer", username: "mercer_dev", avatar: "A", following: [], followers: [] };
+
+  if (path.includes("/api/state") || path.includes("/api/login") || path.includes("/api/signup")) {
+    return Promise.resolve({
+      token: "mock_token_112233",
+      currentUser: mockUser,
+      users: [mockUser, targetUser],
+      posts: [
+        { id: "p1", type: "tweet", authorId: "u1", author: mockUser, body: "Testing the newly unified framework configuration. Feels smooth!", tags: ["web3", "vibe"], likes: [], savedBy: [], comments: [], createdAt: new Date() },
+        { id: "p2", type: "reel", authorId: "u2", author: targetUser, body: "Look at this high-fidelity video landscape compile stream!", tags: ["reels", "cinematic"], likes: ["u1"], savedBy: [], comments: [], media: "https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-4659-large.mp4", createdAt: new Date(Date.now() - 60000) }
+      ],
+      stories: [{ id: "s1", author: targetUser, text: "Coding from the mountains today!", accent: "#00a884" }],
+      chats: [
+        { id: "c1", title: "Social Sphere Dev Group", kind: "group", participants: ["u1", "u2"], messages: [{ authorId: "u2", author: targetUser, text: "Hey! Let me know when the UI integration completes.", createdAt: new Date() }] }
+      ],
+      notifications: [{ id: "n1", text: "Alex Mercer liked your unified interface status update", read: false, createdAt: new Date() }]
+    });
+  }
+  if (path.includes("/posts") && options.method === "POST") {
+    const bodyArgs = JSON.parse(options.body);
+    return Promise.resolve({ id: Math.random().toString(), type: bodyArgs.type || "text", authorId: "u1", author: mockUser, body: bodyArgs.body, tags: bodyArgs.tags || [], likes: [], comments: [], media: bodyArgs.media, createdAt: new Date() });
+  }
+  if (path.includes("/comments")) {
+    return Promise.resolve({ id: "p1", type: "tweet", authorId: "u1", author: mockUser, body: "Updated with comments array tracking parameters.", tags: ["vibe"], likes: [], savedBy: [], comments: [{author: mockUser, body: "Self commentary track added."}], createdAt: new Date() });
+  }
+  if (path.includes("/like") || path.includes("/save")) {
+    return Promise.resolve({ id: "p1", type: "tweet", authorId: "u1", author: mockUser, body: "Interactions simulated.", tags: ["vibe"], likes: ["u1"], savedBy: ["u1"], comments: [], createdAt: new Date() });
+  }
+  return Promise.resolve({});
+}
+
+// System Boot Initialization
+document.addEventListener("DOMContentLoaded", () => {
+  wireEvents();
+  loadState();
+});

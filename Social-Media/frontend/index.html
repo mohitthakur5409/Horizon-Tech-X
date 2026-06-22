@@ -1,77 +1,76 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Social Sphere</title>
+    <title>Social Sphere - Unified Network</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+
     <main id="authScreen" class="auth-screen">
       <section class="auth-visual">
         <div class="brand-mark">S</div>
         <h1>Social Sphere</h1>
         <p>
-          One web app with feeds, stories, reels, short posts, private chat,
-          groups, channels, notifications, and profiles.
+          One unified dynamic interface containing feeds, immersive stories, cinematic reels, real-time channels, and micro-blogging timelines.
         </p>
         <div class="feature-grid">
-          <span>Feed</span>
-          <span>Stories</span>
-          <span>Reels</span>
-          <span>Chats</span>
-          <span>Groups</span>
-          <span>Trends</span>
+          <span>👥 Facebook Feed</span>
+          <span>📸 Insta Stories</span>
+          <span>🎥 Reels</span>
+          <span>💬 Telegram Chat</span>
+          <span>🐦 Twitter Profile</span>
         </div>
       </section>
 
       <section class="auth-panel">
         <div class="tabs compact-tabs">
           <button class="tab-button active" data-auth-tab="login">Login</button>
-          <button class="tab-button" data-auth-tab="signup">Sign up</button>
+          <button class="tab-button" data-auth-tab="signup">Sign Up</button>
         </div>
 
         <form id="loginForm" class="auth-form">
-          <label
-            >Username or email<input name="username" value="demo" required
-          /></label>
-          <label> Password<input
-              name="password"
-              type="password"
-              value="password123"
-              required/>
-            </label>
+          <label>
+            <span>Username or email</span>
+            <input name="username" type="text" value="demo" required />
+          </label>
+          <label>
+            <span>Password</span>
+            <input name="password" type="password" value="password123" required />
+          </label>
           <button class="primary-button" type="submit">Login</button>
-          <p class="form-note">Demo account: demo / password123</p>
+          
+          <div class="social-login-separator"><span>OR</span></div>
+          <button type="button" class="google-btn">Continue with Google</button>
+          
+          <p class="form-note">Demo Credentials: <strong>demo</strong> / <strong>password123</strong></p>
         </form>
 
         <form id="signupForm" class="auth-form hidden">
-          <label Full name<input name="name" placeholder="Your name" required>
-          </label>
-          <label
-            >Username<input name="username" placeholder="your-handle" required
-          /></label>
-          <label
-            >Email<input
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              required/>
-            </label>
           <label>
-              Password<input
-              name="password"
-              type="password"
-              minlength="6"
-              placeholder="At least 6 characters"
-              required/>
-            </label>
-          <button class="primary-button" type="submit">Create account</button>
+            <span>Full Name</span>
+            <input name="name" type="text" placeholder="Your name" required />
+          </label>
+          <label>
+            <span>Username</span>
+            <input name="username" type="text" placeholder="your-handle" required />
+          </label>
+          <label>
+            <span>Email</span>
+            <input name="email" type="email" placeholder="you@example.com" required />
+          </label>
+          <label>
+            <span>Password</span>
+            <input name="password" type="password" minlength="6" placeholder="At least 6 characters" required />
+          </label>
+          <button class="primary-button" type="submit">Create Account</button>
         </form>
-        <div id="authMessage" class="message"></div>
+        <div id="authMessage" class="message error-msg"></div>
       </section>
     </main>
 
@@ -82,13 +81,13 @@
           <span>Social Sphere</span>
         </div>
         <nav class="main-nav">
-          <button class="nav-button active" data-view="home">Home</button>
-          <button class="nav-button" data-view="explore">Explore</button>
-          <button class="nav-button" data-view="messages">Messages</button>
-          <button class="nav-button" data-view="groups">Groups</button>
-          <button class="nav-button" data-view="profile">Profile</button>
+          <button class="nav-button active" data-view="home">🏠 Home</button>
+          <button class="nav-button" data-view="explore">🧭 Explore</button>
+          <button class="nav-button" data-view="messages">💬 Messages</button>
+          <button class="nav-button" data-view="groups">👥 Groups</button>
+          <button class="nav-button" data-view="profile">👤 Profile</button>
         </nav>
-        <button id="logoutButton" class="ghost-button">Logout</button>
+        <button id="logoutButton" class="ghost-button logout-btn">Logout</button>
       </aside>
 
       <section class="content">
@@ -98,53 +97,51 @@
             <p id="viewSubtitle">Your combined social feed</p>
           </div>
           <div class="search-box">
-            <input id="searchInput" placeholder="Search people, posts, tags" aria-label="Search" />
+            <input id="searchInput" type="search" placeholder="Search people, posts, or tags..." aria-label="Search items" />
           </div>
         </header>
 
         <section id="homeView" class="view active-view">
           <div class="stories-strip" id="storiesStrip"></div>
+          
           <form id="postForm" class="composer">
             <div class="composer-top">
-              <div id="composerAvatar" class="avatar"></div>
-              <textarea
-                name="body"
-                placeholder="What's happening? Share a status, photo, reel, or update."
-                rows="3"
-              ></textarea>
+              <div id="composerAvatar" class="avatar">?</div>
+              <textarea name="body" placeholder="What's on your mind? Share an update, photo, or micro-post..." rows="3" required></textarea>
             </div>
             <div class="composer-controls">
               <select name="type" title="Post type">
-                <option value="text">Facebook status</option>
-                <option value="photo">Instagram photo</option>
-                <option value="reel">Instagram reel</option>
-                <option value="tweet">Twitter/X post</option>
+                <option value="text">🌐 Facebook Timeline Post</option>
+                <option value="photo">📸 Instagram Photo Post</option>
+                <option value="reel">🎥 Instagram Vertical Reel</option>
+                <option value="tweet">🐦 Twitter Micro Post</option>
               </select>
-              <input name="media" placeholder="Image URL optional" aria-label="Image URL" />
-              <input name="tags" placeholder="tags, separated, by commas" aria-label="Tags" />
+              <input name="media" type="url" placeholder="Optional Image/Video URL" aria-label="Media URL" />
+              <input name="tags" type="text" placeholder="tags, separation, by, commas" aria-label="Tags input" />
               <button class="primary-button" type="submit">Post</button>
             </div>
           </form>
+          
           <div id="feed" class="feed"></div>
         </section>
+
         <section id="exploreView" class="view">
           <div class="section-heading">
-            <h3>Explore</h3>
-            <button id="markReadButton" class="ghost-button">
-              Mark notifications read
-            </button>
+            <h3>Explore Universe</h3>
+            <button id="markReadButton" class="ghost-button">Mark notifications read</button>
           </div>
           <div id="exploreGrid" class="explore-grid"></div>
         </section>
 
         <section id="messagesView" class="view">
           <div class="messages-layout">
-            <aside id="chatList" class="chat-list" aria-label="Chat list"></aside>
+            <aside id="chatList" class="chat-list" aria-label="Chat instances"></aside>
             <section class="chat-panel">
               <div id="chatHeader" class="chat-header"></div>
               <div id="messageList" class="message-list"></div>
+              <div class="typing hidden" id="typingIndicator">Someone is typing...</div>
               <form id="messageForm" class="message-form">
-                <input name="text" placeholder="Write a message" aria-label="Message" />
+                <input name="text" autocomplete="off" placeholder="Write an encrypted message..." aria-label="Message text box" required />
                 <button class="primary-button" type="submit">Send</button>
               </form>
             </section>
@@ -153,8 +150,8 @@
 
         <section id="groupsView" class="view">
           <div class="section-heading">
-            <h3>Groups and channels</h3>
-            <p>Telegram-style group spaces mixed with social communities.</p>
+            <h3>Groups & Public Channels</h3>
+            <p>Mass-broadcast channels with integrated global communities.</p>
           </div>
           <div id="groupsGrid" class="groups-grid"></div>
         </section>
@@ -164,23 +161,22 @@
         </section>
       </section>
 
-      <aside class="rightbar" aria-label="Right sidebar">
+      <aside class="rightbar" aria-label="Auxiliary Trends Info">
         <section class="mini-panel">
-          <h3>Suggestions</h3>
+          <h3>Who to Follow</h3>
           <div id="suggestionsList"></div>
         </section>
         <section class="mini-panel">
-          <h3>Notifications</h3>
+          <h3>Activity Feed</h3>
           <div id="notificationsList"></div>
         </section>
         <section class="mini-panel">
-          <h3>Trending</h3>
+          <h3>Trending Topics</h3>
           <div id="trendingList" class="trends"></div>
         </section>
       </aside>
     </main>
 
-    <div id="toast" class="toast"></div>
     <script src="app.js"></script>
   </body>
 </html>
