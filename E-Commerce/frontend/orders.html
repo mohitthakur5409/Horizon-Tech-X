@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebStore - My Orders</title>
+    <link rel="stylesheet" href="../frontend/css/style.css" />
+  </head>
+  <body>
+    <nav class="navbar">
+      <a href="../frontend/index.html" class="logo">📦 WebStore</a>
+      <div class="nav-links">
+        <a href="../frontend/cart.html"
+          >🛒 Cart (<span id="cart-count">0</span>)</a
+        >
+        <a href="../frontend/orders.html">📦 My Orders</a>
+        <span id="auth-links"
+          ><a href="../frontend/login.html">Login</a>
+          <a href="../frontend/register.html">Register</a></span
+        >
+      </div>
+    </nav>
+
+    <main class="container">
+      <h2>My Orders</h2>
+      <div id="orders-content"><p>Loading orders...</p></div>
+    </main>
+
+    <script src="../frontend/js/main.js"></script>
+    <script src="../frontend/js/orders.js"></script>
+  </body>
+</html>

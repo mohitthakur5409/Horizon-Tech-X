@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebStore - Register</title>
+    <link rel="stylesheet" href="../frontend/css/style.css" />
+  </head>
+  <body>
+    <nav class="navbar">
+      <a href="../frontend/index.html" class="logo">📦 WebStore</a>
+      <div class="nav-links">
+        <a href="../frontend/cart.html"
+          >🛒 Cart (<span id="cart-count">0</span>)</a
+        >
+        <a href="../frontend/orders.html">📦 My Orders</a>
+        <span id="auth-links"
+          ><a href="../frontend/login.html">Login</a>
+          <a href="../frontend/register.html">Register</a></span
+        >
+      </div>
+    </nav>
+
+    <main class="container">
+      <div class="form-container">
+        <h2>Create an Account</h2>
+        <div id="register-alert" class="alert alert-error hidden"></div>
+        <form id="register-form">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required />
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required />
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              minlength="6"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="confirmPassword">Confirm Password</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              minlength="6"
+              required
+            />
+          </div>
+          <button type="submit" class="btn" id="register-btn">Register</button>
+        </form>
+        <p class="form-footer">
+          Already have an account?
+          <a href="../frontend/login.html">Login here</a>
+        </p>
+      </div>
+    </main>
+
+    <script src="../frontend/js/main.js"></script>
+    <script src="../frontend/js/register.js"></script>
+  </body>
+</html>
